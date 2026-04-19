@@ -51,8 +51,8 @@ main:
     movq    %r12, %rdi
     shlq    $3,   %rdi
     call    malloc
-    movq    %rax, -56(%rbp)
-    movq    $-1,  -64(%rbp)
+    movq    %rax, -56(%rbp)     # stack base pointer
+    movq    $-1,  -64(%rbp)     # stack top index (starts at -1)
 
     # parse input
     xorq    %rbx, %rbx
@@ -67,36 +67,42 @@ main:
     jmp     .Lparse
 .Lparse_done:
 
-    # main logic (right to left)
+    # main logic (right to left) [cite: 84]
     movq    %r12, %rbx
-    decq    %rbx
+    decq    %rbx                # i = len(arr) - 1
 .Lmain_loop:
     cmpq    $0, %rbx
     jl      .Lmain_done
 
 .Lwhile:
-    cmpq    $-1, -64(%rbp)
+    # while (!stack.empty() && arr[stack.top()] <= arr[i]) 
+    movq    -64(%rbp), %rax     # load stack top index
+    cmpq    $-1, %rax           # check if stack is empty
     je      .Lwhile_done
-    movq    -64(%rbp), %rax
-    movq    -56(%rbp), %rcx
-    movq    (%rcx, %rax, 8), %rax
-    movq    (%r14, %rax, 8), %rax
-    movq    (%r14, %rbx, 8), %rcx
-    cmpq    %rcx, %rax
-    jg      .Lwhile_done
-    decq    -64(%rbp)
+    
+    movq    -56(%rbp), %rcx     # stack base
+    movq    (%rcx, %rax, 8), %rdx # rdx = stack.top() (the index)
+    movq    (%r14, %rdx, 8), %rax # rax = arr[stack.top()] (the value)
+    movq    (%r14, %rbx, 8), %rcx # rcx = arr[i] (current value)
+    
+    cmpq    %rcx, %rax          # compare arr[stack.top()] with arr[i]
+    jg      .Lwhile_done        # if arr[stack.top()] > arr[i], stop popping
+    
+    decq    -64(%rbp)           # stack.pop()
     jmp     .Lwhile
 .Lwhile_done:
 
-    cmpq    $-1, -64(%rbp)
-    je      .Lpush
+    # if (!stack.empty()) result[i] = stack.top() [cite: 85]
     movq    -64(%rbp), %rax
+    cmpq    $-1, %rax
+    je      .Lpush
+    
     movq    -56(%rbp), %rcx
-    movq    (%rcx, %rax, 8), %rax
-    movq    %rax, (%r15, %rbx, 8)
-    #movq (%r14, %rax, 8), %rax   # get value from arr[index] index->value
-    #movq %rax, (%r15, %rbx, 8)
+    movq    (%rcx, %rax, 8), %rdx # get the index stored at stack top
+    movq    %rdx, (%r15, %rbx, 8) # result[i] = index
+
 .Lpush:
+    # stack.push(i) [cite: 85]
     incq    -64(%rbp)
     movq    -64(%rbp), %rax
     movq    -56(%rbp), %rcx
@@ -106,7 +112,7 @@ main:
     jmp     .Lmain_loop
 .Lmain_done:
 
-    # print output
+    # print output [cite: 75]
     xorq    %rbx, %rbx
 .Lprint:
     cmpq    %r12, %rbx
@@ -140,4 +146,5 @@ main:
     popq    %r14
     popq    %r15
     popq    %rbp
-    ret 
+    ret
+    
