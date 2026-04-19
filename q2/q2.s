@@ -94,7 +94,8 @@ main:
     movq    -56(%rbp), %rcx
     movq    (%rcx, %rax, 8), %rax
     movq    %rax, (%r15, %rbx, 8)
-
+    #movq (%r14, %rax, 8), %rax   # get value from arr[index] index->value
+    #movq %rax, (%r15, %rbx, 8)
 .Lpush:
     incq    -64(%rbp)
     movq    -64(%rbp), %rax
@@ -139,4 +140,4 @@ main:
     popq    %r14
     popq    %r15
     popq    %rbp
-    ret
+    ret 
